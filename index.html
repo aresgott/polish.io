@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Polish is a small CLI that fixes grammar and tone. Run polish alone to read clipboard and copy the result. Tone config, pipes, commit messages, and PR descriptions."
+    />
+    <meta name="theme-color" content="#05060c" />
+    <title>Polish - AI Text Polishing From Your Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #05060c;
+        --bg-soft: #0a0d18;
+        --panel: rgba(12, 16, 30, 0.82);
+        --panel-strong: rgba(16, 22, 42, 0.94);
+        --line: rgba(255, 255, 255, 0.08);
+        --line-strong: rgba(255, 255, 255, 0.16);
+        --text: #f4f6fc;
+        --muted: #8b95ad;
+        --muted-strong: #c2c9dc;
+        --brand: #9d6fff;
+        --brand-2: #2dd4a8;
+        --brand-3: #5eb0ff;
+        --success: #4ade80;
+        --shadow: 0 32px 100px rgba(0, 0, 0, 0.55);
+        --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.28);
+        --radius-lg: 28px;
+        --radius-md: 20px;
+        --radius-sm: 12px;
+        --max-width: 1140px;
+        --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: var(--font-sans);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        overflow-x: hidden;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -20%, rgba(157, 111, 255, 0.18), transparent),
+          radial-gradient(circle at 12% 4%, rgba(157, 111, 255, 0.22), transparent 32rem),
+          radial-gradient(circle at 88% 6%, rgba(45, 212, 168, 0.12), transparent 26rem),
+          linear-gradient(180deg, #05060c 0%, #070a14 42%, #040508 100%);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body::before {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        pointer-events: none;
+        content: "";
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 72%);
+      }
+
+      body::after {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        content: "";
+        background:
+          linear-gradient(180deg, rgba(7, 9, 18, 0) 0%, rgba(7, 9, 18, 0.7) 80%),
+          radial-gradient(circle at 50% 24%, rgba(101, 169, 255, 0.12), transparent 38rem);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      code {
+        border-radius: 6px;
+        padding: 0.14em 0.42em;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.06);
+        color: #d4dcff;
+        font-family: var(--font-mono);
+        font-size: 0.88em;
+        font-weight: 500;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--brand-2);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -100px;
+        left: 16px;
+        z-index: 100;
+        border-radius: var(--radius-sm);
+        padding: 10px 16px;
+        background: var(--brand);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        transition: top 200ms ease;
+      }
+
+      .skip-link:focus {
+        top: 16px;
+      }
+
+      .page-shell {
+        width: min(100% - 40px, var(--max-width));
+        margin: 0 auto;
+      }
+
+      .nav-wrap {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        border-bottom: 1px solid transparent;
+        transition:
+          border-color 300ms ease,
+          background 300ms ease,
+          backdrop-filter 300ms ease;
+      }
+
+      .nav-wrap.is-scrolled {
+        border-color: var(--line);
+        background: rgba(5, 6, 12, 0.72);
+        backdrop-filter: blur(20px) saturate(1.4);
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 720;
+        letter-spacing: -0.03em;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 11px;
+        background:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent),
+          linear-gradient(135deg, #9d6fff 0%, #2dd4a8 100%);
+        box-shadow: 0 8px 24px rgba(157, 111, 255, 0.35);
+        font-family: var(--font-mono);
+        font-size: 17px;
+        font-weight: 500;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .nav-link {
+        border-radius: 999px;
+        padding: 9px 14px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+        transition:
+          color 180ms ease,
+          background 180ms ease;
+      }
+
+      .nav-link:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+      }
+
+      .nav-cta {
+        margin-left: 8px;
+        border-color: rgba(157, 111, 255, 0.4);
+        background: rgba(157, 111, 255, 0.12);
+        color: #e8deff;
+        font-size: 13px;
+        min-height: 36px;
+        padding: 0 16px;
+      }
+
+      .nav-cta:hover {
+        background: rgba(157, 111, 255, 0.22);
+        border-color: rgba(157, 111, 255, 0.55);
+      }
+
+      .nav-toggle {
+        display: none;
+        width: 40px;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .nav-toggle svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .hero {
+        position: relative;
+        display: grid;
+        min-height: calc(100vh - 92px);
+        place-items: center;
+        padding: 54px 0 108px;
+        text-align: center;
+      }
+
+      .hero::before {
+        position: absolute;
+        top: 13%;
+        left: 50%;
+        width: min(760px, 90vw);
+        height: 460px;
+        content: "";
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background:
+          radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 62%),
+          radial-gradient(circle at 72% 42%, rgba(49, 208, 170, 0.16), transparent 42%);
+        filter: blur(36px);
+        opacity: 0.95;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 22px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 13px;
+        background: rgba(255, 255, 255, 0.045);
+        color: var(--muted-strong);
+        font-size: 13px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+      }
+
+      .eyebrow-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 18px rgba(74, 222, 128, 0.78);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(64px, 12vw, 132px);
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+        text-wrap: balance;
+      }
+
+      .hero-title-gradient {
+        display: inline-block;
+        padding-block: 0.06em;
+        background: linear-gradient(
+          165deg,
+          #ffffff 0%,
+          #e8ecff 38%,
+          #a8b4d4 72%,
+          #7b8ab0 100%
+        );
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+        font-variant-ligatures: none;
+        font-feature-settings: "liga" 0, "calt" 0, "dlig" 0;
+      }
+
+      .hero-tagline {
+        display: block;
+        margin-top: 0.35em;
+        font-size: clamp(18px, 2.8vw, 26px);
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        background: linear-gradient(90deg, var(--brand), var(--brand-2) 55%, var(--brand-3));
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      .hero-stats {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 28px;
+      }
+
+      .hero-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 14px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--muted-strong);
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .hero-stat-icon {
+        color: var(--brand-2);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .subtitle {
+        max-width: 720px;
+        margin: 30px auto 0;
+        color: var(--muted-strong);
+        font-size: clamp(20px, 3vw, 29px);
+        line-height: 1.36;
+        letter-spacing: -0.04em;
+        text-wrap: balance;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 34px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        padding: 0 20px;
+        font-size: 15px;
+        font-weight: 680;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+      }
+
+      .button-primary {
+        border-color: rgba(255, 255, 255, 0.14);
+        background: linear-gradient(135deg, #9d6fff 0%, #6b8fff 50%, #5eb0ff 100%);
+        color: #fff;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.2) inset,
+          0 14px 40px rgba(157, 111, 255, 0.35);
+      }
+
+      .button-primary:hover {
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.25) inset,
+          0 18px 48px rgba(157, 111, 255, 0.45);
+      }
+
+      .button-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        backdrop-filter: blur(18px);
+      }
+
+      .button-secondary:hover {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(255, 255, 255, 0.22);
+      }
+
+      .install-pill {
+        display: inline-flex;
+        max-width: 100%;
+        align-items: center;
+        gap: 12px;
+        margin-top: 20px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 10px 12px 10px 16px;
+        background: rgba(5, 7, 14, 0.58);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        color: var(--muted-strong);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        backdrop-filter: blur(16px);
+      }
+
+      .copy-command {
+        display: inline-flex;
+        align-items: center;
+        border: 0;
+        border-radius: 999px;
+        padding: 8px 11px;
+        background: rgba(255, 255, 255, 0.09);
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        transition:
+          background 180ms ease,
+          color 180ms ease;
+      }
+
+      .copy-command:hover,
+      .copy-command.copied {
+        background: rgba(49, 208, 170, 0.16);
+        color: #c8fff1;
+      }
+
+      .terminal-wrap {
+        position: relative;
+        max-width: 860px;
+        margin: 56px auto 0;
+        border-radius: var(--radius-lg);
+        animation: floatIn 900ms ease both 220ms;
+      }
+
+      .terminal-wrap::before,
+      .terminal-wrap::after {
+        position: absolute;
+        z-index: -1;
+        content: "";
+        border-radius: var(--radius-lg);
+      }
+
+      .terminal-wrap::before {
+        inset: -1px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(139, 92, 246, 0.3), rgba(49, 208, 170, 0.18));
+        opacity: 0.55;
+        filter: blur(8px);
+      }
+
+      .terminal-wrap::after {
+        inset: 12% 7% -18%;
+        background: rgba(0, 0, 0, 0.5);
+        filter: blur(36px);
+      }
+
+      .terminal {
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+          rgba(6, 9, 18, 0.88);
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+        text-align: left;
+        backdrop-filter: blur(28px);
+      }
+
+      .terminal-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+        padding: 18px 22px;
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .traffic-light {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+
+      .traffic-light.red {
+        background: #ff5f57;
+      }
+
+      .traffic-light.yellow {
+        background: #ffbd2e;
+      }
+
+      .traffic-light.green {
+        background: #28c840;
+      }
+
+      .terminal-title {
+        margin-left: auto;
+        color: #7f8aa8;
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+
+      .terminal-body {
+        min-height: 268px;
+        padding: clamp(24px, 4vw, 38px);
+        font-family: var(--font-mono);
+        font-size: clamp(15px, 2.5vw, 20px);
+        line-height: 1.8;
+        transition: opacity 280ms ease;
+      }
+
+      .terminal-body.is-fading {
+        opacity: 0.35;
+      }
+
+      .terminal-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55ch;
+        min-height: 1.8em;
+        opacity: 0;
+        transform: translateY(8px);
+        transition:
+          opacity 420ms ease,
+          transform 420ms ease;
+      }
+
+      .terminal-line.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .terminal-line.terminal-hint {
+        color: #7f8aa8;
+        font-size: 0.92em;
+      }
+
+      .terminal-line.output {
+        color: #dce5ff;
+      }
+
+      .terminal-line.success {
+        color: #bbf7d0;
+      }
+
+      .prompt {
+        color: var(--brand-2);
+      }
+
+      .typed-command {
+        color: #f7f9ff;
+        white-space: nowrap;
+      }
+
+      .typed-command.is-typing {
+        border-right: 2px solid #dce5ff;
+        animation: caret 800ms step-end infinite;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 0.62em;
+        height: 1.18em;
+        margin-left: 4px;
+        transform: translateY(0.18em);
+        background: #e7ebff;
+        animation: blink 900ms step-end infinite;
+      }
+
+      .terminal-case {
+        margin-left: auto;
+        color: #9aa8c8;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .terminal-dots {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .terminal-dot {
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          background 180ms ease;
+      }
+
+      .terminal-dot.is-active {
+        background: var(--brand-2);
+        transform: scale(1.2);
+      }
+
+      .terminal-dot:hover {
+        background: rgba(49, 208, 170, 0.55);
+      }
+
+      .section {
+        padding: 100px 0;
+      }
+
+      .section-header {
+        max-width: 680px;
+        margin-bottom: 34px;
+      }
+
+      .section-kicker {
+        margin: 0 0 12px;
+        color: var(--brand-2);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(32px, 4.5vw, 52px);
+        font-weight: 600;
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+
+      .section-copy {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.65;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .feature-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .feature-icon {
+        color: var(--brand-2);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .feature-card h3 {
+        margin: 14px 0 6px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .feature-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .examples {
+        display: grid;
+        grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+        gap: 22px;
+        align-items: stretch;
+      }
+
+      .usage-panel,
+      .workflow-panel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(24px);
+      }
+
+      .usage-panel {
+        padding: 12px;
+      }
+
+      .usage-line {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-radius: 16px;
+        padding: 16px 18px;
+        color: #dfe6ff;
+        font-family: var(--font-mono);
+        font-size: clamp(13px, 1.8vw, 15px);
+        transition: background 200ms ease;
+      }
+
+      .usage-line:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .usage-line + .usage-line {
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .usage-prompt {
+        color: var(--brand-2);
+      }
+
+      .workflow-panel {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(26px, 4vw, 38px);
+      }
+
+      .workflow-panel::before {
+        position: absolute;
+        inset: -1px;
+        content: "";
+        background:
+          radial-gradient(circle at 90% 10%, rgba(49, 208, 170, 0.2), transparent 18rem),
+          radial-gradient(circle at 10% 90%, rgba(139, 92, 246, 0.18), transparent 20rem);
+        pointer-events: none;
+      }
+
+      .workflow-panel > * {
+        position: relative;
+      }
+
+      .workflow-panel h3 {
+        margin: 0;
+        font-size: clamp(26px, 4vw, 40px);
+        line-height: 1.08;
+        letter-spacing: -0.06em;
+      }
+
+      .workflow-panel p {
+        margin: 18px 0 28px;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.7;
+      }
+
+      .steps {
+        display: grid;
+        gap: 12px;
+      }
+
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted-strong);
+      }
+
+      .step-number {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .tone-note {
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.65;
+      }
+
+      .final-cta {
+        position: relative;
+        overflow: hidden;
+        margin: 64px 0 0;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        padding: clamp(36px, 6vw, 60px);
+        background:
+          radial-gradient(ellipse 70% 80% at 50% 120%, rgba(45, 212, 168, 0.12), transparent),
+          linear-gradient(135deg, rgba(157, 111, 255, 0.14), rgba(45, 212, 168, 0.08)),
+          rgba(255, 255, 255, 0.03);
+        text-align: center;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .final-cta::before {
+        position: absolute;
+        inset: -1px;
+        z-index: -1;
+        content: "";
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(157, 111, 255, 0.35), rgba(45, 212, 168, 0.2), transparent 60%);
+        opacity: 0.5;
+        filter: blur(1px);
+      }
+
+      .final-cta h2 {
+        font-size: clamp(32px, 5vw, 54px);
+      }
+
+      .final-cta p {
+        max-width: 620px;
+        margin: 16px auto 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.65;
+      }
+
+      .section-divider {
+        height: 1px;
+        margin: 0;
+        border: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.1) 20%,
+          rgba(255, 255, 255, 0.1) 80%,
+          transparent
+        );
+      }
+
+      .footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        border-top: 1px solid var(--line);
+        padding: 32px 0 48px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted-strong);
+        font-weight: 500;
+      }
+
+      .footer-brand .brand-mark {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+        border-radius: 8px;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+      }
+
+      .footer a {
+        transition: color 180ms ease;
+      }
+
+      .footer a:hover {
+        color: var(--text);
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 700ms ease,
+          transform 700ms ease;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @keyframes caret {
+        50% {
+          border-color: transparent;
+        }
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes floatIn {
+        from {
+          opacity: 0;
+          transform: translateY(26px) scale(0.98);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 1ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 1ms !important;
+        }
+
+        .typed-command {
+          width: auto;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .nav {
+          padding: 14px 0;
+        }
+
+        .nav-toggle {
+          display: inline-flex;
+        }
+
+        .nav-links {
+          position: fixed;
+          top: 65px;
+          right: 20px;
+          left: 20px;
+          display: none;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 4px;
+          border: 1px solid var(--line);
+          border-radius: var(--radius-md);
+          padding: 10px;
+          background: rgba(8, 10, 18, 0.96);
+          box-shadow: var(--shadow);
+          backdrop-filter: blur(24px);
+        }
+
+        .nav-links.is-open {
+          display: flex;
+        }
+
+        .nav-link {
+          padding: 12px 14px;
+        }
+
+        .nav-cta {
+          margin: 4px 0 0;
+          justify-content: center;
+        }
+
+        .hero {
+          min-height: auto;
+          padding: 40px 0 72px;
+        }
+
+        .terminal-body {
+          min-height: 232px;
+        }
+
+        .features-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .examples {
+          grid-template-columns: 1fr;
+        }
+
+        .section {
+          padding: 72px 0;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .page-shell {
+          width: min(100% - 22px, var(--max-width));
+        }
+
+        .hero-tagline {
+          font-size: 16px;
+        }
+
+        .hero-stats {
+          gap: 8px;
+        }
+
+        .hero-stat {
+          font-size: 12px;
+          padding: 7px 12px;
+        }
+
+        .subtitle {
+          margin-top: 22px;
+        }
+
+        .button,
+        .install-pill {
+          width: 100%;
+        }
+
+        .install-pill {
+          justify-content: space-between;
+          overflow-x: auto;
+          border-radius: var(--radius-sm);
+          white-space: nowrap;
+        }
+
+        .cta-row {
+          align-items: stretch;
+        }
+
+        .terminal {
+          border-radius: 24px;
+        }
+
+        .terminal-header {
+          padding: 15px 17px;
+        }
+
+        .terminal-title {
+          display: none;
+        }
+
+        .terminal-body {
+          padding: 22px 18px;
+          font-size: 13px;
+        }
+
+        .typed-command {
+          white-space: normal;
+        }
+
+        .terminal-line {
+          gap: 0.35ch;
+        }
+
+        .usage-line {
+          align-items: flex-start;
+          padding: 16px 12px;
+        }
+
+        .footer {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <div class="nav-wrap" id="nav-wrap">
+      <header class="page-shell nav" aria-label="Main navigation">
+        <a class="brand" href="#" aria-label="Polish home">
+          <span class="brand-mark">P</span>
+          <span>Polish</span>
+        </a>
+        <button
+          class="nav-toggle"
+          type="button"
+          id="nav-toggle"
+          aria-expanded="false"
+          aria-controls="nav-links"
+          aria-label="Open menu"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round" />
+          </svg>
+        </button>
+        <nav class="nav-links" id="nav-links" aria-label="Page sections">
+          <a class="nav-link" href="#features">Features</a>
+          <a class="nav-link" href="#examples">Examples</a>
+          <a class="nav-link" href="https://github.com/aresgott/polish" rel="noreferrer">GitHub</a>
+          <a class="button nav-cta" href="#install">Install</a>
+        </nav>
+      </header>
+    </div>
+
+    <main id="main-content">
+      <section class="page-shell hero" aria-labelledby="hero-title">
+        <div class="hero-content">
+          <div class="eyebrow">
+            <span class="eyebrow-dot" aria-hidden="true"></span>
+            Clipboard in, clipboard out · pipe-friendly · commit messages · PR descriptions
+          </div>
+
+          <h1 id="hero-title">
+            <span class="hero-title-gradient">Polish</span>
+            <span class="hero-tagline">AI text polishing from your terminal</span>
+          </h1>
+          <p class="subtitle">
+            A small CLI that fixes grammar, adjusts tone, and writes for you — powered by ChatGPT (via Codex). Run <code>polish</code> alone to read your clipboard and copy the result back. Generates commit messages and PR descriptions from git diffs.
+          </p>
+
+          <div class="hero-stats" aria-label="Key capabilities">
+            <span class="hero-stat"><span class="hero-stat-icon">⌘</span> Clipboard polish</span>
+            <span class="hero-stat"><span class="hero-stat-icon">-c</span> Commit messages</span>
+            <span class="hero-stat"><span class="hero-stat-icon">--pr</span> PR descriptions</span>
+          </div>
+
+          <div class="cta-row" aria-label="Primary actions">
+            <a class="button button-primary" href="#install">Install Polish</a>
+            <a class="button button-secondary" href="https://github.com/aresgott/polish" rel="noreferrer">GitHub</a>
+          </div>
+
+          <div class="install-pill" id="install" aria-label="Install command">
+            <code>brew install aresgott/polish</code>
+            <button class="copy-command" type="button" data-copy="brew install aresgott/polish">Copy</button>
+          </div>
+
+          <div class="terminal-wrap" aria-label="Animated terminal examples">
+            <div class="terminal">
+              <div class="terminal-header">
+                <span class="traffic-light red" aria-hidden="true"></span>
+                <span class="traffic-light yellow" aria-hidden="true"></span>
+                <span class="traffic-light green" aria-hidden="true"></span>
+                <span class="terminal-title">polish — zsh</span>
+                <span class="terminal-case" id="terminal-case">Clipboard</span>
+              </div>
+              <div
+                class="terminal-body"
+                id="terminal-body"
+                aria-live="polite"
+                aria-relevant="additions text"
+              ></div>
+            </div>
+            <div class="terminal-dots" id="terminal-dots" aria-label="Terminal demo cases"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page-shell section reveal" id="features" aria-labelledby="features-title">
+        <div class="section-header">
+          <p class="section-kicker">What it does</p>
+          <h2 id="features-title">Grammar, tone, commit messages, and PR descriptions — without leaving the terminal.</h2>
+          <p class="section-copy">
+            Run <code>polish</code> with no arguments to polish whatever is on your clipboard — the result lands on your clipboard again. Add inline text, pipes, tone flags, or git modes when you need more control.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-icon">✎</div>
+            <h3>Polish prose</h3>
+            <p>Fix spelling and grammar while keeping your meaning, apostrophes, and emojis.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">-f</div>
+            <h3>Tone &amp; config</h3>
+            <p>Pick a tone per run (<code>-f</code>, <code>-o</code>, <code>-s</code>, <code>-poetic</code>, …) or set a default with <code>polish config official</code> — stored in <code>~/.polish/config.json</code>.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">|</div>
+            <h3>Pipe text in</h3>
+            <p>Stream files and drafts through Polish — <code>cat notes.txt | polish</code> prints to stdout.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">-c</div>
+            <h3>Commit messages &amp; PR descriptions</h3>
+            <p>Creates commit messages from staged or piped diffs (<code>polish -c</code>) and full PR descriptions from branch changes (<code>polish --pr</code>) — ready to paste or pipe into git.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">⌘C</div>
+            <h3>Just run <code>polish</code></h3>
+            <p><code>polish</code> reads your clipboard (or lets you paste if empty), polishes the text, and copies the result back. Use <code>-np</code> when you only want stdout.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">◇</div>
+            <h3>ChatGPT via Codex</h3>
+            <p>Sign in with <code>polish login</code> (browser or <code>--device</code> for headless). Credentials live at <code>~/.codex/auth.json</code>.</p>
+          </article>
+        </div>
+
+        <p class="tone-note">
+          Default tone is <strong>friendly</strong>. Also: <code>-o</code> official, <code>-s</code> scientific, <code>-political</code>, <code>-poetic</code>.
+          Set a default with <code>polish config official</code>.
+        </p>
+      </section>
+
+      <hr class="page-shell section-divider" aria-hidden="true" />
+
+      <section class="page-shell section reveal" id="examples" aria-labelledby="examples-title">
+        <div class="examples">
+          <div>
+            <div class="section-header">
+              <p class="section-kicker">Everyday use</p>
+              <h2 id="examples-title">Clipboard, tone, pipes, and git.</h2>
+              <p class="section-copy">
+                Copy text, run <code>polish</code>, paste the result. Pass arguments for inline polish, tone flags for one-off style, or <code>polish config</code> to save your default tone.
+              </p>
+            </div>
+            <div class="usage-panel" aria-label="Example usage commands">
+              <div class="usage-line"><span class="usage-prompt">$</span><code>polish</code></div>
+              <div class="usage-line"><span class="usage-prompt">$</span><code>polish thanks for the quik update</code></div>
+              <div class="usage-line"><span class="usage-prompt">$</span><code>polish -f thanks team</code></div>
+              <div class="usage-line"><span class="usage-prompt">$</span><code>polish config official</code></div>
+              <div class="usage-line"><span class="usage-prompt">$</span><code>cat notes.txt | polish</code></div>
+              <div class="usage-line"><span class="usage-prompt">$</span><code>git diff --staged | polish -c</code></div>
+              <div class="usage-line"><span class="usage-prompt">$</span><code>polish --pr</code></div>
+            </div>
+          </div>
+
+          <aside class="workflow-panel" aria-label="Polish workflow">
+            <h3>Copy. Polish. Paste.</h3>
+            <p>
+              The fastest path is bare <code>polish</code>: clipboard in, polished text out. Set your default tone once with config, or pass <code>-f</code> / <code>-o</code> when you need a different voice.
+            </p>
+            <div class="steps">
+              <div class="step"><span class="step-number">1</span><span>Copy rough text, then run <code>polish</code> — result copied back (paste at prompt if clipboard is empty).</span></div>
+              <div class="step"><span class="step-number">2</span><span><code>polish config friendly</code> or <code>polish -o …</code> for official tone on a single run.</span></div>
+              <div class="step"><span class="step-number">3</span><span><code>git diff --staged | polish -c</code> for commit messages; <code>polish --pr</code> for PR descriptions.</span></div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="final-cta">
+          <h2>Install once. Polish everywhere.</h2>
+          <p>Run <code>polish</code> on whatever you copied, tune tone with flags or config, and ship commit messages and PR descriptions — all from the terminal.</p>
+          <div class="cta-row">
+            <a class="button button-primary" href="#install">Install Polish</a>
+            <a class="button button-secondary" href="https://github.com/aresgott/polish" rel="noreferrer">View on GitHub</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="page-shell footer">
+      <span class="footer-brand">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        Built by Mohsen
+      </span>
+      <div class="footer-links">
+        <a href="mailto:ce.ahmadinia@gmail.com">ce.ahmadinia@gmail.com</a>
+        <a href="https://github.com/aresgott/polish" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/aresgott/polish/blob/main/LICENSE" rel="noreferrer">MIT License</a>
+      </div>
+    </footer>
+
+    <script>
+      const navWrap = document.getElementById("nav-wrap");
+      const navToggle = document.getElementById("nav-toggle");
+      const navLinks = document.getElementById("nav-links");
+
+      window.addEventListener(
+        "scroll",
+        () => {
+          navWrap.classList.toggle("is-scrolled", window.scrollY > 24);
+        },
+        { passive: true },
+      );
+
+      navToggle.addEventListener("click", () => {
+        const isOpen = navLinks.classList.toggle("is-open");
+        navToggle.setAttribute("aria-expanded", String(isOpen));
+        navToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+      });
+
+      navLinks.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => {
+          navLinks.classList.remove("is-open");
+          navToggle.setAttribute("aria-expanded", "false");
+          navToggle.setAttribute("aria-label", "Open menu");
+        });
+      });
+
+      const copyButtons = document.querySelectorAll("[data-copy]");
+
+      copyButtons.forEach((button) => {
+        button.addEventListener("click", async () => {
+          const text = button.getAttribute("data-copy");
+          const originalText = button.textContent;
+
+          try {
+            await navigator.clipboard.writeText(text);
+            button.textContent = "Copied";
+            button.classList.add("copied");
+          } catch {
+            button.textContent = "Copy failed";
+          }
+
+          window.setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove("copied");
+          }, 1800);
+        });
+      });
+
+      const revealObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.18 },
+      );
+
+      document.querySelectorAll(".reveal").forEach((element) => {
+        revealObserver.observe(element);
+      });
+
+      const terminalBody = document.getElementById("terminal-body");
+      const terminalCase = document.getElementById("terminal-case");
+      const terminalDots = document.getElementById("terminal-dots");
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const terminalScenarios = [
+        {
+          label: "Clipboard",
+          command: "polish",
+          lines: [
+            { kind: "hint", text: "reading clipboard…" },
+            { kind: "output", text: "Hey, could you send me an update tomorrow?" },
+            { kind: "success", text: "copied to clipboard" },
+          ],
+        },
+        {
+          label: "Inline text",
+          command: "polish thanks for the quik update",
+          lines: [
+            { kind: "output", text: "Thanks for the quick update." },
+            { kind: "success", text: "copied to clipboard" },
+          ],
+        },
+        {
+          label: "Official tone",
+          command: "polish -o please review the attached doc",
+          lines: [
+            { kind: "output", text: "Please review the attached document." },
+            { kind: "success", text: "copied to clipboard" },
+          ],
+        },
+        {
+          label: "Commit message",
+          command: "git diff --staged | polish -c",
+          lines: [
+            { kind: "output", text: "feat(cli): add clipboard polish flow" },
+            { kind: "success", text: "copied to clipboard" },
+          ],
+        },
+        {
+          label: "PR description",
+          command: "polish --pr",
+          lines: [
+            { kind: "output", text: "## Summary · Add clipboard polish flow" },
+            { kind: "hint", text: "Summary, Changes, and Test plan sections" },
+            { kind: "success", text: "copied to clipboard" },
+          ],
+        },
+        {
+          label: "Pipe to stdout",
+          command: "cat notes.txt | polish",
+          lines: [
+            { kind: "output", text: "Polished meeting notes sent to stdout." },
+            { kind: "hint", text: "piped prose prints to stdout (no clipboard)" },
+          ],
+        },
+      ];
+
+      let activeScenario = 0;
+      let scenarioTimers = [];
+      let scenarioRunId = 0;
+
+      function clearScenarioTimers() {
+        scenarioTimers.forEach((timer) => window.clearTimeout(timer));
+        scenarioTimers = [];
+      }
+
+      function wait(ms) {
+        const delay = prefersReducedMotion ? 0 : ms;
+        return new Promise((resolve) => {
+          scenarioTimers.push(window.setTimeout(resolve, delay));
+        });
+      }
+
+      function updateTerminalDots() {
+        terminalDots.querySelectorAll(".terminal-dot").forEach((dot, index) => {
+          dot.classList.toggle("is-active", index === activeScenario);
+          dot.setAttribute("aria-current", index === activeScenario ? "true" : "false");
+        });
+      }
+
+      function appendTerminalLine(kind, text) {
+        const row = document.createElement("div");
+        row.className = `terminal-line ${kind === "hint" ? "terminal-hint" : kind}`;
+        const prefix = kind === "success" ? "✓" : "→";
+        const prefixEl = document.createElement("span");
+        const textEl = document.createElement("span");
+        prefixEl.textContent = prefix;
+        textEl.textContent = text;
+        row.append(prefixEl, textEl);
+        terminalBody.appendChild(row);
+        requestAnimationFrame(() => row.classList.add("is-visible"));
+        return row;
+      }
+
+      async function typeCommand(element, command) {
+        element.textContent = "";
+        element.classList.add("is-typing");
+
+        if (prefersReducedMotion) {
+          element.textContent = command;
+          element.classList.remove("is-typing");
+          return;
+        }
+
+        for (const character of command) {
+          element.textContent += character;
+          await wait(28 + Math.floor(Math.random() * 18));
+        }
+
+        element.classList.remove("is-typing");
+      }
+
+      async function playScenario(index) {
+        const runId = ++scenarioRunId;
+        clearScenarioTimers();
+        activeScenario = index;
+        updateTerminalDots();
+
+        const scenario = terminalScenarios[index];
+        terminalCase.textContent = scenario.label;
+        terminalBody.classList.add("is-fading");
+        await wait(220);
+
+        if (runId !== scenarioRunId) {
+          return;
+        }
+
+        terminalBody.innerHTML = "";
+        terminalBody.classList.remove("is-fading");
+
+        const commandLine = document.createElement("div");
+        commandLine.className = "terminal-line is-visible";
+        const prompt = document.createElement("span");
+        const typed = document.createElement("span");
+        prompt.className = "prompt";
+        prompt.textContent = "$";
+        typed.className = "typed-command";
+        commandLine.append(prompt, typed);
+        terminalBody.appendChild(commandLine);
+
+        await typeCommand(typed, scenario.command);
+        if (runId !== scenarioRunId) {
+          return;
+        }
+
+        await wait(380);
+
+        let lastLine = commandLine;
+        for (const line of scenario.lines) {
+          if (runId !== scenarioRunId) {
+            return;
+          }
+
+          lastLine = appendTerminalLine(line.kind, line.text);
+          const pause = line.kind === "output" && line.text.length > 48 ? 1100 : 720;
+          await wait(pause);
+        }
+
+        if (runId !== scenarioRunId) {
+          return;
+        }
+
+        const cursor = document.createElement("span");
+        cursor.className = "cursor";
+        cursor.setAttribute("aria-hidden", "true");
+        lastLine.appendChild(cursor);
+
+        await wait(prefersReducedMotion ? 2200 : 3400);
+
+        if (runId !== scenarioRunId) {
+          return;
+        }
+
+        playScenario((index + 1) % terminalScenarios.length);
+      }
+
+      terminalScenarios.forEach((scenario, index) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "terminal-dot";
+        dot.setAttribute("aria-label", scenario.label);
+        dot.addEventListener("click", () => playScenario(index));
+        terminalDots.appendChild(dot);
+      });
+
+      updateTerminalDots();
+      playScenario(0);
+    </script>
+  </body>
+</html>
