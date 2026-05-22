@@ -216,6 +216,32 @@
         border-color: rgba(157, 111, 255, 0.55);
       }
 
+      .nav-coffee {
+        display: inline-flex;
+        width: 36px;
+        height: 36px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted-strong);
+        transition:
+          color 180ms ease,
+          background 180ms ease,
+          border-color 180ms ease;
+      }
+
+      .nav-coffee:hover {
+        border-color: rgba(255, 221, 0, 0.4);
+        background: rgba(255, 221, 0, 0.1);
+        color: #ffdd00;
+      }
+
+      .nav-coffee svg {
+        width: 18px;
+        height: 18px;
+      }
+
       .nav-toggle {
         display: none;
         width: 40px;
@@ -930,6 +956,22 @@
         color: var(--text);
       }
 
+      .footer-coffee {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .footer-coffee svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      .footer-coffee:hover {
+        color: #ffdd00;
+      }
+
       .reveal {
         opacity: 0;
         transform: translateY(20px);
@@ -1014,6 +1056,11 @@
 
         .nav-link {
           padding: 12px 14px;
+        }
+
+        .nav-coffee {
+          align-self: center;
+          margin: 4px auto 0;
         }
 
         .nav-cta {
@@ -1147,6 +1194,19 @@
           <a class="nav-link" href="#features">Features</a>
           <a class="nav-link" href="#examples">Examples</a>
           <a class="nav-link" href="https://github.com/aresgott/polish" rel="noreferrer">GitHub</a>
+          <a
+            class="nav-coffee"
+            href="https://buymeacoffee.com/aresgott"
+            rel="noreferrer"
+            target="_blank"
+            aria-label="Support on Buy Me a Coffee"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M6 8h11v6a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V8z" stroke-linejoin="round" />
+              <path d="M17 10h1.5a2 2 0 0 1 0 4H17" stroke-linecap="round" />
+              <path d="M7 4v2M10 4v2M13 4v2" stroke-linecap="round" />
+            </svg>
+          </a>
           <a class="button nav-cta" href="#install">Install</a>
         </nav>
       </header>
@@ -1310,6 +1370,19 @@
       </span>
       <div class="footer-links">
         <a href="mailto:ce.ahmadinia@gmail.com">ce.ahmadinia@gmail.com</a>
+        <a
+          class="footer-coffee"
+          href="https://buymeacoffee.com/aresgott"
+          rel="noreferrer"
+          target="_blank"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M6 8h11v6a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V8z" stroke-linejoin="round" />
+            <path d="M17 10h1.5a2 2 0 0 1 0 4H17" stroke-linecap="round" />
+            <path d="M7 4v2M10 4v2M13 4v2" stroke-linecap="round" />
+          </svg>
+          Buy Me a Coffee
+        </a>
         <a href="https://github.com/aresgott/polish" rel="noreferrer">GitHub</a>
         <a href="https://github.com/aresgott/polish/blob/main/LICENSE" rel="noreferrer">MIT License</a>
       </div>
