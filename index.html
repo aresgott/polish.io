@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Polish is a small CLI that fixes grammar and tone. Run polish alone to read clipboard and copy the result. Tone config, pipes, commit messages, and PR descriptions."
+      content="Polish — fix grammar and tone in your terminal. ChatGPT, Claude, or Gemini. Clipboard, pipes, commit messages, PR descriptions."
     />
     <meta name="theme-color" content="#05060c" />
     <title>Polish - AI Text Polishing From Your Terminal</title>
@@ -1225,13 +1225,13 @@
             <span class="hero-tagline">AI text polishing from your terminal</span>
           </h1>
           <p class="subtitle">
-            A small CLI that fixes grammar, adjusts tone, and writes for you — powered by ChatGPT (via Codex). Run <code>polish</code> alone to read your clipboard and copy the result back. Generates commit messages and PR descriptions from git diffs.
+            Fix grammar and tone in the terminal. Sign in with ChatGPT, Claude, or Gemini — then run <code>polish</code> on your clipboard, pipes, or git diffs.
           </p>
 
           <div class="hero-stats" aria-label="Key capabilities">
-            <span class="hero-stat"><span class="hero-stat-icon">⌘</span> Clipboard polish</span>
-            <span class="hero-stat"><span class="hero-stat-icon">-c</span> Commit messages</span>
-            <span class="hero-stat"><span class="hero-stat-icon">--pr</span> PR descriptions</span>
+            <span class="hero-stat">ChatGPT · Claude · Gemini</span>
+            <span class="hero-stat"><span class="hero-stat-icon">⌘</span> Clipboard</span>
+            <span class="hero-stat"><span class="hero-stat-icon">-c</span> Commits · --pr</span>
           </div>
 
           <div class="cta-row" aria-label="Primary actions">
@@ -1305,8 +1305,8 @@
           </article>
           <article class="feature-card">
             <div class="feature-icon">◇</div>
-            <h3>ChatGPT via Codex</h3>
-            <p>Sign in with <code>polish login</code> (browser or <code>--device</code> for headless). Credentials live at <code>~/.codex/auth.json</code>.</p>
+            <h3>Sign in</h3>
+            <p><code>polish login</code> — ChatGPT, Claude, or Gemini.</p>
           </article>
         </div>
 
@@ -1329,6 +1329,7 @@
               </p>
             </div>
             <div class="usage-panel" aria-label="Example usage commands">
+              <div class="usage-line"><span class="usage-prompt">$</span><code>polish login</code></div>
               <div class="usage-line"><span class="usage-prompt">$</span><code>polish</code></div>
               <div class="usage-line"><span class="usage-prompt">$</span><code>polish thanks for the quik update</code></div>
               <div class="usage-line"><span class="usage-prompt">$</span><code>polish -f thanks team</code></div>
@@ -1341,13 +1342,11 @@
 
           <aside class="workflow-panel" aria-label="Polish workflow">
             <h3>Copy. Polish. Paste.</h3>
-            <p>
-              The fastest path is bare <code>polish</code>: clipboard in, polished text out. Set your default tone once with config, or pass <code>-f</code> / <code>-o</code> when you need a different voice.
-            </p>
+            <p>Clipboard in, polished text out.</p>
             <div class="steps">
-              <div class="step"><span class="step-number">1</span><span>Copy rough text, then run <code>polish</code> — result copied back (paste at prompt if clipboard is empty).</span></div>
-              <div class="step"><span class="step-number">2</span><span><code>polish config friendly</code> or <code>polish -o …</code> for official tone on a single run.</span></div>
-              <div class="step"><span class="step-number">3</span><span><code>git diff --staged | polish -c</code> for commit messages; <code>polish --pr</code> for PR descriptions.</span></div>
+              <div class="step"><span class="step-number">1</span><span><code>polish login</code></span></div>
+              <div class="step"><span class="step-number">2</span><span><code>polish</code> — clipboard in, polished text out</span></div>
+              <div class="step"><span class="step-number">3</span><span><code>polish -c</code> or <code>polish --pr</code> for git</span></div>
             </div>
           </aside>
         </div>
