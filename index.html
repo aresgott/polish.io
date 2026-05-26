@@ -451,12 +451,54 @@
         border-color: rgba(255, 255, 255, 0.22);
       }
 
+      .install-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: min(100%, 720px);
+        margin: 20px auto 0;
+      }
+
+      .install-tabs {
+        display: inline-flex;
+        gap: 4px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .install-tab {
+        border: 0;
+        border-radius: 999px;
+        padding: 7px 14px;
+        background: transparent;
+        color: var(--muted);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          color 180ms ease,
+          background 180ms ease;
+      }
+
+      .install-tab:hover {
+        color: var(--muted-strong);
+      }
+
+      .install-tab.is-active {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+      }
+
       .install-pill {
         display: inline-flex;
+        width: 100%;
         max-width: 100%;
         align-items: center;
         gap: 12px;
-        margin-top: 20px;
         border: 1px solid var(--line);
         border-radius: var(--radius-md);
         padding: 12px 12px 12px 16px;
@@ -480,6 +522,24 @@
         padding: 0;
         background: none;
         font-size: inherit;
+      }
+
+      .install-panel:not(.is-active) {
+        display: none;
+      }
+
+      .install-note {
+        max-width: 520px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+        text-align: center;
+        text-wrap: balance;
+      }
+
+      .install-note:not(.is-active) {
+        display: none;
       }
 
       .copy-command {
@@ -1117,6 +1177,7 @@
         }
 
         .button,
+        .install-block,
         .install-pill {
           width: 100%;
         }
@@ -1229,6 +1290,7 @@
           </p>
 
           <div class="hero-stats" aria-label="Key capabilities">
+            <span class="hero-stat">macOS · Linux</span>
             <span class="hero-stat">ChatGPT · Claude</span>
             <span class="hero-stat"><span class="hero-stat-icon">⌘</span> Clipboard</span>
             <span class="hero-stat"><span class="hero-stat-icon">-c</span> Commits · --pr</span>
@@ -1239,12 +1301,28 @@
             <a class="button button-secondary" href="https://github.com/aresgott/polish" rel="noreferrer">GitHub</a>
           </div>
 
-          <div class="install-pill" id="install" aria-label="Install commands">
-            <div class="install-commands">
-              <code>brew tap aresgott/polish</code>
-              <code>brew install polish</code>
+          <div class="install-block" id="install">
+            <div class="install-tabs" role="tablist" aria-label="Install for your OS">
+              <button type="button" class="install-tab is-active" role="tab" aria-selected="true" data-os="macos">macOS</button>
+              <button type="button" class="install-tab" role="tab" aria-selected="false" data-os="linux">Linux</button>
             </div>
-            <button class="copy-command" type="button" data-copy-install>Copy</button>
+            <div class="install-pill" aria-label="Install commands">
+              <div class="install-panel is-active" data-os-panel="macos">
+                <div class="install-commands">
+                  <code>brew tap aresgott/polish</code>
+                  <code>brew install polish</code>
+                </div>
+              </div>
+              <div class="install-panel" data-os-panel="linux">
+                <div class="install-commands">
+                  <code>curl -fsSL https://raw.githubusercontent.com/aresgott/polish/main/packaging/linux/install.sh | bash</code>
+                </div>
+              </div>
+              <button class="copy-command" type="button" data-copy-install>Copy</button>
+            </div>
+            <p class="install-note" data-os-note="linux">
+              Installs Node.js (apt, Homebrew, or nvm), <code>@aresgott/polish</code>, and <code>xclip</code> if needed.
+            </p>
           </div>
 
           <div class="terminal-wrap" aria-label="Animated terminal examples">
@@ -1414,6 +1492,20 @@
         });
       });
 
+      document.querySelectorAll(".install-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const os = tab.dataset.os;
+          document.querySelectorAll(".install-tab").forEach((t) => {
+            const active = t === tab;
+            t.classList.toggle("is-active", active);
+            t.setAttribute("aria-selected", String(active));
+          });
+          document.querySelectorAll("[data-os-panel], [data-os-note]").forEach((el) => {
+            el.classList.toggle("is-active", (el.dataset.osPanel ?? el.dataset.osNote) === os);
+          });
+        });
+      });
+
       const copyButtons = document.querySelectorAll("[data-copy], [data-copy-install]");
 
       copyButtons.forEach((button) => {
@@ -1423,7 +1515,8 @@
           if (button.hasAttribute("data-copy-install")) {
             const codes = button
               .closest(".install-pill")
-              ?.querySelectorAll(".install-commands code");
+              ?.querySelector(".install-panel.is-active .install-commands")
+              ?.querySelectorAll("code");
             text = codes
               ? [...codes].map((el) => el.textContent.trim()).join("\n")
               : "";
